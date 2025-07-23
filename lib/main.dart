@@ -5,6 +5,13 @@ import 'todo_dao.dart';
 
 void main() => runApp(MyApp());
 
+
+
+
+// heelloo
+
+
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -49,6 +56,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  // 🎁 Easter egg state
+  int _titleTapCount = 0;
+
   final _itemCtrl = TextEditingController();
   final _qtyCtrl = TextEditingController();
 
@@ -75,7 +85,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _addItem() async {
     final name = _itemCtrl.text.trim();
-    final qty  = _qtyCtrl.text.trim();
+    final qty = _qtyCtrl.text.trim();
     if (name.isEmpty || qty.isEmpty) return;
 
     final newItem = TodoItem(TodoItem.ID++, name, qty);
@@ -159,9 +169,9 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ID: ${selectedItem!.id}',   style: TextStyle(fontSize: 18)),
+          Text('ID: ${selectedItem!.id}', style: TextStyle(fontSize: 18)),
           Text('Name: ${selectedItem!.name}', style: TextStyle(fontSize: 18)),
-          Text('Qty: ${selectedItem!.qty}',   style: TextStyle(fontSize: 18)),
+          Text('Qty: ${selectedItem!.qty}', style: TextStyle(fontSize: 18)),
           SizedBox(height: 24),
           Row(
             children: [
@@ -187,7 +197,6 @@ class _MyHomePageState extends State<MyHomePage> {
     final height = size.height;
 
     if (width > height && width > 720) {
-      // Tablet / Desktop master–detail
       return Row(
         children: [
           Expanded(flex: 1, child: listPage()),
@@ -196,7 +205,6 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       );
     } else {
-      // Phone / portrait: list or detail full‑screen
       return selectedItem == null ? listPage() : detailsPage();
     }
   }
@@ -204,7 +212,20 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Flutter Week 9 – Responsive Lab')),
+      appBar: AppBar(
+        title: GestureDetector(
+          onTap: () {
+            _titleTapCount++;
+            if (_titleTapCount == 7) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('🐰 You found the Easter Egg! 🥚')),
+              );
+              _titleTapCount = 0;
+            }
+          },
+          child: Text('Flutter Week 9 – Responsive Lab'),
+        ),
+      ),
       body: reactiveLayout(),
     );
   }
