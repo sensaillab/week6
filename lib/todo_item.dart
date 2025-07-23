@@ -9,10 +9,7 @@ class TodoItem {
   final String name;
   final String qty;
 
-
   TodoItem(this.id, this.name, this.qty) {
-    if (id >= ID) {
-      ID = id + 1;
-    }
+    if (id >= ID) ID = id + 1;
   }
 }

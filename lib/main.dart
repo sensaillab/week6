@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:week6/database.dart';
-import 'package:week6/todo_item.dart';
-import 'package:week6/todo_dao.dart';
+import 'database.dart';
+import 'todo_item.dart';
+import 'todo_dao.dart';
 
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Lab – Week 8',
+      title: 'Flutter Lab – Week 9',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: Color(0xFFB39DDB),
@@ -48,42 +45,32 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
   final _itemCtrl = TextEditingController();
-  final _qtyCtrl  = TextEditingController();
+  final _qtyCtrl = TextEditingController();
 
   late AppDatabase _database;
-  late TodoDao    _todoDao;
-  List<TodoItem>  _items = [];
+  late TodoDao _todoDao;
+  List<TodoItem> _items = [];
+  TodoItem? selectedItem;
 
   @override
   void initState() {
     super.initState();
+    selectedItem = null;
     _initDbAndLoad();
   }
 
   Future<void> _initDbAndLoad() async {
-    // 1) open the database
     _database = await $FloorAppDatabase
         .databaseBuilder('app_database.db')
         .build();
     _todoDao = _database.todoDao;
-
-    // 2) load all saved items
     final saved = await _todoDao.findAllItems();
-    setState(() {
-      _items = saved;
-    });
-  }
-
-  @override
-  void dispose() {
-    _itemCtrl.dispose();
-    _qtyCtrl.dispose();
-    super.dispose();
+    setState(() => _items = saved);
   }
 
   Future<void> _addItem() async {
@@ -91,13 +78,8 @@ class _MyHomePageState extends State<MyHomePage> {
     final qty  = _qtyCtrl.text.trim();
     if (name.isEmpty || qty.isEmpty) return;
 
-    // create with a unique ID
     final newItem = TodoItem(TodoItem.ID++, name, qty);
-
-    // persist to DB
     await _todoDao.insertItem(newItem);
-
-    // update UI
     setState(() {
       _items.add(newItem);
       _itemCtrl.clear();
@@ -105,23 +87,13 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Future<void> _confirmDelete(int index) async {
-    final toDelete = _items[index];
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Delete this item?'),
-        content: Text('Remove "${toDelete.name}" from the list?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('No')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true),  child: Text('Yes')),
-        ],
-      ),
-    );
-
-    if (ok == true) {
-      await _todoDao.deleteItem(toDelete);
-      setState(() => _items.removeAt(index));
+  Future<void> _deleteSelected() async {
+    if (selectedItem != null) {
+      await _todoDao.deleteItem(selectedItem!);
+      setState(() {
+        _items.removeWhere((i) => i.id == selectedItem!.id);
+        selectedItem = null;
+      });
     }
   }
 
@@ -161,12 +133,12 @@ class _MyHomePageState extends State<MyHomePage> {
               itemBuilder: (ctx, i) {
                 final item = _items[i];
                 return GestureDetector(
-                  onLongPress: () => _confirmDelete(i),
+                  onTap: () => setState(() => selectedItem = item),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Center(
                       child: Text(
-                        '${i + 1}: ${item.name}  quantity: ${item.qty}',
+                        '${i + 1}: ${item.name} (qty: ${item.qty})',
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
@@ -180,11 +152,67 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget detailsPage() {
+    if (selectedItem == null) return SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('ID: ${selectedItem!.id}',   style: TextStyle(fontSize: 18)),
+          Text('Name: ${selectedItem!.name}', style: TextStyle(fontSize: 18)),
+          Text('Qty: ${selectedItem!.qty}',   style: TextStyle(fontSize: 18)),
+          SizedBox(height: 24),
+          Row(
+            children: [
+              ElevatedButton(
+                onPressed: _deleteSelected,
+                child: Text('Delete'),
+              ),
+              SizedBox(width: 16),
+              ElevatedButton(
+                onPressed: () => setState(() => selectedItem = null),
+                child: Text('Close'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget reactiveLayout() {
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    final height = size.height;
+
+    if (width > height && width > 720) {
+      // Tablet / Desktop master–detail
+      return Row(
+        children: [
+          Expanded(flex: 1, child: listPage()),
+          VerticalDivider(width: 1),
+          Expanded(flex: 2, child: detailsPage()),
+        ],
+      );
+    } else {
+      // Phone / portrait: list or detail full‑screen
+      return selectedItem == null ? listPage() : detailsPage();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Flutter Week 8 – Floor Lab')),
-      body: listPage(),
+      appBar: AppBar(title: Text('Flutter Week 9 – Responsive Lab')),
+      body: reactiveLayout(),
     );
+  }
+
+  @override
+  void dispose() {
+    _itemCtrl.dispose();
+    _qtyCtrl.dispose();
+    super.dispose();
   }
 }
